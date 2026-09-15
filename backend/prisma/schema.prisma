@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  AGENT
+  SUPERVISEUR
+}
+
+enum Status {
+  NOUVEAU
+  EN_COURS
+  RESOLU
+  ESCALE
+}
+
+enum Priority {
+  BASSE
+  MOYENNE
+  HAUTE
+  URGENTE
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  name      String
+  role      Role       @default(CLIENT)
+  createdAt DateTime   @default(now())
+  tickets   Ticket[]   @relation("ClientTickets")
+  assigned  Ticket[]   @relation("AgentTickets")
+  auditLogs AuditLog[]
+}
+
+model Ticket {
+  id          String    @id @default(uuid())
+  subject     String
+  status      Status    @default(NOUVEAU)
+  priority    Priority  @default(MOYENNE)
+  sentiment   String?   // positif, neutre, frustré
+  clientId    String
+  client      User      @relation("ClientTickets", fields: [clientId], references: [id])
+  agentId     String?
+  agent       User?     @relation("AgentTickets", fields: [agentId], references: [id])
+  messages    Message[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  sender    String   // CLIENT, AGENT, IA
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model FaqArticle {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  category  String
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String   // ex: "MODIFICATION_STATUT", "VALIDATION_IA"
+  details   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
