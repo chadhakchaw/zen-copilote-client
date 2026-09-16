@@ -637,14 +637,14 @@ body, html {
   line-height: 1.4;
 }
 
-/* ================= 4. MODAL RETOUR ================= */
+/* ================= 4. MODAL ET FORMULAIRES DE SAISIE ================= */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(24, 24, 27, 0.6);
+  background: rgba(24, 24, 27, 0.7);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -728,4 +728,71 @@ body, html {
 
 .btn-modal-confirm:hover {
   background: var(--zen-green-hover);
+}
+
+.modal-large {
+  max-width: 520px;
+  width: 90%;
+}
+
+.ticket-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  margin-top: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-group label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Style uniforme et parfaitement lisible pour tous les champs d'entrée */
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-dark);
+  color: var(--text-on-dark);
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--zen-green);
+  box-shadow: 0 0 0 2px var(--zen-green-glow);
+  background: var(--bg-dark);
+}
+
+.form-select option {
+  background: var(--bg-dark);
+  color: var(--text-on-dark);
 }
