@@ -47,3 +47,8 @@ model FaqArticle {
   status    String?  @default("PUBLISHED") // DRAFT, PUBLISHED
   createdAt DateTime @default(now())
 }
+model Role {
+  id       Int    @id @default(autoincrement())
+  name     String @unique
+  password String
+}

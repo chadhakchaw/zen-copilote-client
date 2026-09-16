@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { OpenAI } = require('openai');
 const prisma = require('./prisma');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 app.use(cors());
@@ -135,3 +136,5 @@ app.post('/api/tickets/:id/messages', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+app.use('/api/auth', authRoutes);
