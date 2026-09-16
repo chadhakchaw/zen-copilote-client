@@ -1,187 +1,731 @@
+/* ================= SYSTEME DE COULEURS : STRICTEMENT 1 SEUL VERT ZEN ================= */
+:root {
+  /* La SEULE et UNIQUE couleur d'accentuation de l'application */
+  --zen-green: #059669;
+  --zen-green-hover: #047857;
+  --zen-green-light: #ecfdf5;
+  --zen-green-border: #a7f3d0;
+  --zen-green-glow: rgba(5, 150, 105, 0.12);
+
+  /* Neutres Purs (Charbon / Zinc - Sans aucune teinte de bleu) */
+  --bg-dark: #18181b;
+  --bg-surface-dark: #27272a;
+  --border-dark: #3f3f46;
+  
+  --bg-main: #f4f4f5;
+  --bg-card: #ffffff;
+  --bg-subtle: #fafafa;
+  --border-light: #e4e4e7;
+
+  /* Typographie Neutre */
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
+  --text-on-dark: #fafafa;
+}
+
+/* Reset Global */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
-body {
-  background-color: #f4f6f8;
-  color: #333;
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-size: 13px;
 }
 
-.app-container {
+.loading-state {
   display: flex;
+  justify-content: center;
+  align-items: center;
   height: 100vh;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background-color: var(--bg-dark);
 }
 
-/* Sidebar FAQ */
-.sidebar {
-  width: 300px;
-  background-color: #ffffff;
-  border-right: 1px solid #e1e4e8;
-  padding: 20px;
-  overflow-y: auto;
+/* ================= 1. PAGE DE GARDE (3 ROLES) ================= */
+.landing-screen {
+  min-height: 100vh;
+  background-color: var(--bg-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
 }
 
-.sidebar h2 {
-  font-size: 1.1rem;
-  margin-bottom: 15px;
+.landing-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.brand-badge {
+  width: 48px;
+  height: 48px;
+  background: var(--zen-green-glow);
+  color: var(--zen-green);
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #2c3e50;
+  justify-content: center;
+  margin: 0 auto 12px auto;
+  border: 1px solid var(--zen-green);
 }
 
-.faq-card {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-
-.faq-card h4 {
-  font-size: 0.9rem;
-  color: #0066cc;
+.landing-header h1 {
+  color: var(--text-on-dark);
+  font-size: 1.7rem;
+  font-weight: 700;
   margin-bottom: 6px;
 }
 
-.faq-card p {
+.landing-header p {
+  color: var(--text-muted);
   font-size: 0.85rem;
-  color: #555;
 }
 
-/* Zone Principale de Chat */
-.main-chat {
-  flex: 1;
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 280px);
+  gap: 16px;
+}
+
+.role-box {
+  background: var(--bg-surface-dark);
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-box:hover {
+  border-color: var(--zen-green);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--zen-green-glow);
+}
+
+.role-box-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--zen-green-glow);
+  color: var(--zen-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.role-box h3 {
+  color: var(--text-on-dark);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.role-box p {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin-bottom: 18px;
+  flex: 1;
+}
+
+.role-box-btn {
+  width: 100%;
+  background: var(--border-dark);
+  color: var(--text-on-dark);
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.role-box:hover .role-box-btn {
+  background: var(--zen-green);
+}
+
+/* ================= 2. NAVBAR (TOUTE LA LARGEUR & NEUTRE) ================= */
+.app-viewport {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+}
+
+.main-navbar {
+  height: 46px;
+  width: 100%;
+  background-color: var(--bg-dark);
+  color: var(--text-on-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-dark);
+  flex-shrink: 0;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.brand-icon {
+  color: var(--zen-green);
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-badge {
+  background: var(--bg-surface-dark);
+  border: 1px solid var(--border-dark);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-badge strong {
+  color: var(--text-on-dark);
+}
+
+.active-dot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--zen-green);
+  border-radius: 50%;
+}
+
+.btn-home {
+  background: var(--bg-surface-dark);
+  color: var(--text-muted);
+  border: 1px solid var(--border-dark);
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-home:hover {
+  background: var(--zen-green);
+  color: var(--text-on-dark);
+  border-color: var(--zen-green);
+}
+
+/* ================= 3. DISPOSITION STRICTE 3 COLONNES ================= */
+.three-columns-layout {
+  display: grid;
+  grid-template-columns: 290px 1fr 270px;
+  width: 100%;
+  height: calc(100vh - 46px);
+  overflow: hidden;
+}
+
+/* COLONNE 1 : SIDEBAR (INBOX / FAQ) */
+.column-sidebar {
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-light);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 16px;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.btn-add-faq {
+  margin-left: auto;
+  background: var(--zen-green-light);
+  color: var(--zen-green);
+  border: 1px solid var(--zen-green-border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ticket-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* États des tickets neutres / vert ZEN uniquement */
+.ticket-card {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ticket-card:hover {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+  border-left-color: var(--zen-green-border);
+}
+
+.ticket-card.active {
+  background: var(--zen-green-light);
+  border-color: var(--zen-green-border);
+  border-left: 3px solid var(--zen-green);
+}
+
+.ticket-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.client-name {
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+}
+
+.ticket-card.active .client-name {
+  color: var(--zen-green-hover);
+}
+
+.wait-time {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ticket-subject {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticket-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.tag {
+  font-size: 0.62rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.faq-card {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.faq-card h5 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.faq-card p {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+/* COLONNE 2 : ZONE CHAT */
+.column-chat {
+  background: var(--bg-main);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 .chat-header {
-  background-color: #ffffff;
-  padding: 15px 20px;
-  border-radius: 8px;
-  border: 1px solid #e1e4e8;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.chat-messages {
-  flex: 1;
-  background-color: #ffffff;
-  border-radius: 8px;
-  border: 1px solid #e1e4e8;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  overflow-y: auto;
-}
-
-.message-box {
-  max-width: 70%;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 0.95rem;
-}
-
-.message-box.client {
-  align-self: flex-start;
-  background-color: #eef2f5;
-  border: 1px solid #dcdfe3;
-}
-
-.message-box.agent {
-  align-self: flex-end;
-  background-color: #0066cc;
-  color: #ffffff;
-}
-
-.reply-section {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-textarea {
-  width: 100%;
-  height: 100px;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #dcdfe3;
-  resize: none;
-  font-size: 0.95rem;
-}
-
-.actions-bar {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
+  padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.btn {
-  padding: 10px 18px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
+.chat-header h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.client-info {
+  font-size: 0.72rem;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.badge-status {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  background: var(--zen-green-light);
+  color: var(--zen-green-hover);
+  border: 1px solid var(--zen-green-border);
+}
+
+.messages-list {
+  flex: 1;
+  padding: 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message-bubble {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.message-bubble.client {
+  align-self: flex-start;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+}
+
+.message-bubble.agent {
+  align-self: flex-end;
+  background: var(--zen-green);
+  color: var(--text-on-dark);
+}
+
+.sender-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.chat-input-box {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-light);
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.btn-primary {
-  background-color: #0066cc;
-  color: white;
+.chat-input-box textarea {
+  width: 100%;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: var(--bg-main);
 }
 
-/* Panneau Copilot IA */
-.copilot-panel {
-  width: 340px;
-  background-color: #ffffff;
-  border-left: 1px solid #e1e4e8;
-  padding: 20px;
+.chat-input-box textarea:focus {
+  border-color: var(--zen-green);
+  box-shadow: 0 0 0 3px var(--zen-green-glow);
+  background: var(--bg-card);
+}
+
+.input-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-send {
+  background: var(--zen-green);
+  color: var(--text-on-dark);
+  border: none;
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-send:hover {
+  background: var(--zen-green-hover);
+}
+
+.empty-chat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+/* COLONNE 3 : PANNEAU COPILOT IA */
+.column-copilot {
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-light);
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
+  overflow-y: auto;
 }
 
 .copilot-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #6b21a8;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-light);
 }
 
-.copilot-box {
-  background-color: #f3e8ff;
-  border: 1px solid #d8b4fe;
-  border-radius: 8px;
-  padding: 15px;
-}
-
-.copilot-box p {
-  font-size: 0.9rem;
-  color: #4c1d95;
-  line-height: 1.4;
+.copilot-header svg {
+  color: var(--zen-green);
 }
 
 .btn-copilot {
-  background-color: #9333ea;
-  color: white;
   width: 100%;
-  justify-content: center;
+  background: var(--zen-green-light);
+  color: var(--zen-green-hover);
+  border: 1px solid var(--zen-green-border);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.btn-apply {
-  background-color: #22c55e;
-  color: white;
-  margin-top: 10px;
-  font-size: 0.85rem;
+.btn-copilot:hover:not(:disabled) {
+  background: var(--zen-green);
+  color: var(--text-on-dark);
+}
+
+.btn-copilot:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.suggestion-box {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.suggestion-box p {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.btn-insert {
+  background: var(--zen-green);
+  color: var(--text-on-dark);
+  border: none;
+  padding: 6px;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-insert:hover {
+  background: var(--zen-green-hover);
+}
+
+.copilot-client-info {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ================= 4. MODAL RETOUR ================= */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-card {
+  background: var(--bg-surface-dark);
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  padding: 20px;
+  width: 300px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.modal-icon {
+  width: 38px;
+  height: 38px;
+  background: var(--zen-green-glow);
+  color: var(--zen-green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px auto;
+}
+
+.modal-card h3 {
+  color: var(--text-on-dark);
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+}
+
+.modal-card p {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-modal-cancel {
+  flex: 1;
+  background: var(--border-dark);
+  color: var(--text-on-dark);
+  border: none;
+  padding: 7px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.btn-modal-confirm {
+  flex: 1;
+  background: var(--zen-green);
+  color: var(--text-on-dark);
+  border: none;
+  padding: 7px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-modal-confirm:hover {
+  background: var(--zen-green-hover);
 }
