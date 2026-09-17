@@ -1,534 +1,1006 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  MessageSquare, User, Send, Bot, CheckCircle, Clock, 
-  Shield, Headphones, Home, Plus, X, Lock
+  Sparkles, Send, Plus, Trash2, Edit2, Search, BarChart3, 
+  BookOpen, Clock, CheckCircle2, MessageSquare, RefreshCw, 
+  Home, User, ShieldCheck, Headphones, CornerDownLeft, MessageCircle,
+  Check, X, Lock
 } from 'lucide-react';
 import './App.css';
 
-function App() {
-  const [currentRole, setCurrentRole] = useState(null);
-  const [showExitModal, setShowExitModal] = useState(false);
-  
-  // États pour la modal de mot de passe
-  const [pendingRole, setPendingRole] = useState(null);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+// --- MOTS DE PASSE D'ACCÈS AUX RÔLES ---
+const ROLE_PASSWORDS = {
+  client: '123',
+  agent: '456',
+  supervisor: '789'
+};
 
-  // États pour la création de ticket client
-  const [showNewTicketModal, setShowNewTicketModal] = useState(false);
-  const [newSubject, setNewSubject] = useState('');
-  const [newChannel, setNewChannel] = useState('WEB');
-  const [newPriority, setNewPriority] = useState('MEDIUM');
-  const [newDescription, setNewDescription] = useState('');
-  const [ticketError, setTicketError] = useState('');
-
-  // États pour les données de l'application
-  const [tickets, setTickets] = useState([]);
-  const [faqs, setFaqs] = useState([]);
-  const [selectedTicket, setSelectedTicket] = useState(null);
-  const [copilotSuggestion, setCopilotSuggestion] = useState('');
-  const [replyText, setReplyText] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  // Chargement des données au démarrage
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [ticketsRes, faqsRes] = await Promise.all([
-          fetch('http://localhost:5000/api/tickets'),
-          fetch('http://localhost:5000/api/faq')
-        ]);
-        const ticketsData = await ticketsRes.json();
-        const faqsData = await faqsRes.json();
-
-        setTickets(ticketsData);
-        setFaqs(faqsData);
-        if (ticketsData.length > 0) setSelectedTicket(ticketsData[0]);
-      } catch (err) {
-        console.error('Erreur de chargement:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  // Clic sur une carte de rôle
-  const handleRoleClick = (role) => {
-    setPendingRole(role);
-    setPasswordInput('');
-    setPasswordError('');
-    setShowPasswordModal(true);
-  };
-
-  // Annulation de la saisie du mot de passe
-  const handleCancelPassword = () => {
-    setShowPasswordModal(false);
-    setPendingRole(null);
-    setPasswordInput('');
-    setPasswordError('');
-  };
-
-  // Vérification du mot de passe via l'API Backend (BDD)
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    setPasswordError('');
-
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/verify-role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role: pendingRole,
-          password: passwordInput,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setCurrentRole(pendingRole);
-        setPendingRole(null);
-        setShowPasswordModal(false);
-        setPasswordInput('');
-      } else {
-        setPasswordError(data.message || 'Mot de passe incorrect');
-      }
-    } catch (err) {
-      setPasswordError('Erreur de connexion avec le serveur');
-    }
-  };
-
-  // Création d'un ticket par le client
-  const handleCreateTicket = async (e) => {
-    e.preventDefault();
-    setTicketError('');
-
-    if (!newSubject.trim() || !newDescription.trim()) {
-      setTicketError('Veuillez remplir le sujet et la description.');
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:5000/api/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: newSubject,
-          channel: newChannel,
-          priority: newPriority,
-          description: newDescription,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setTickets((prev) => [data, ...prev]);
-        setSelectedTicket(data);
-        setShowNewTicketModal(false);
-        setNewSubject('');
-        setNewDescription('');
-        setTicketError('');
-      } else {
-        setTicketError(data.message || 'Erreur lors de la création du ticket');
-      }
-    } catch (error) {
-      console.error('Erreur création ticket:', error);
-      setTicketError('Impossible de contacter le serveur backend.');
-    }
-  };
-
-  // Calcul du temps d'attente
-  const getWaitingTime = (createdAt) => {
-    if (!createdAt) return '0m';
-    const diffInMinutes = Math.floor((new Date() - new Date(createdAt)) / (1000 * 60));
-    if (diffInMinutes < 60) return `${Math.max(0, diffInMinutes)}m`;
-    return `${Math.floor(diffInMinutes / 60)}h ${diffInMinutes % 60}m`;
-  };
-
-  // Demander une suggestion à l'IA
-  const handleGenerateSuggestion = async () => {
-    if (!selectedTicket) return;
-    setIsGenerating(true);
-    try {
-      const response = await fetch('http://localhost:5000/api/copilot/suggest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticketId: selectedTicket.id }),
-      });
-      const data = await response.json();
-      setCopilotSuggestion(data.suggestion || "Aucune suggestion disponible.");
-    } catch (error) {
-      setCopilotSuggestion("Erreur de connexion avec le serveur IA.");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // Envoyer un message
-  const handleSendMessage = async () => {
-    if (!replyText.trim() || !selectedTicket) return;
-    try {
-      const response = await fetch(`http://localhost:5000/api/tickets/${selectedTicket.id}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: replyText,
-          senderRole: currentRole === 'CLIENT' ? 'CLIENT' : 'AGENT',
-          status: currentRole === 'CLIENT' ? 'IN_PROGRESS' : 'RESOLVED',
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const updatedTicket = data.id ? data : {
-          ...selectedTicket,
-          messages: [...(selectedTicket.messages || []), { id: Date.now(), content: replyText, senderRole: currentRole === 'CLIENT' ? 'CLIENT' : 'AGENT' }]
-        };
-
-        setSelectedTicket(updatedTicket);
-        setTickets((prev) => prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)));
-        setReplyText('');
-        setCopilotSuggestion('');
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi du message:', error);
-    }
-  };
-
-  if (loading) return <div className="loading-state">Chargement de l'application...</div>;
-
-  /* ================= PAGE 1 : ÉCRAN DE SÉLECTION DES RÔLES ================= */
-  if (!currentRole) {
-    return (
-      <div className="landing-screen">
-        <div className="landing-header">
-          <div className="brand-badge"><Bot size={28} /></div>
-          <h1>Zen Copilot IA</h1>
-          <p>Choisissez un espace de travail pour continuer</p>
-        </div>
-
-        <div className="role-grid">
-          <div className="role-box" onClick={() => handleRoleClick('CLIENT')}>
-            <div className="role-box-icon"><User size={24} /></div>
-            <h3>Espace Client</h3>
-            <p>Accédez à vos demandes et suivez l'état de vos tickets.</p>
-            <button className="role-box-btn">Entrer comme Client</button>
-          </div>
-
-          <div className="role-box" onClick={() => handleRoleClick('AGENT')}>
-            <div className="role-box-icon"><Headphones size={24} /></div>
-            <h3>Agent Support</h3>
-            <p>Gérez la résolution des tickets assisté par le Copilot IA.</p>
-            <button className="role-box-btn">Entrer comme Agent</button>
-          </div>
-
-          <div className="role-box" onClick={() => handleRoleClick('SUPERVISOR')}>
-            <div className="role-box-icon"><Shield size={24} /></div>
-            <h3>Superviseur</h3>
-            <p>Supervisez la plateforme et gérez la base de connaissances FAQ.</p>
-            <button className="role-box-btn">Entrer comme Superviseur</button>
-          </div>
-        </div>
-
-        {/* MODAL MOT DE PASSE */}
-        {showPasswordModal && (
-          <div className="modal-overlay">
-            <div className="modal-card">
-              <button className="modal-close-btn" onClick={handleCancelPassword}>
-                <X size={16} />
-              </button>
-              <div className="modal-icon"><Lock size={20} /></div>
-              <h3>Accès sécurisé</h3>
-              <p>
-                Entrez le mot de passe pour l'espace{' '}
-                <strong>
-                  {pendingRole === 'CLIENT' ? 'Client' : pendingRole === 'AGENT' ? 'Agent Support' : 'Superviseur'}
-                </strong>
-              </p>
-              
-              <form onSubmit={handlePasswordSubmit}>
-                <input
-                  type="password"
-                  className="form-input"
-                  placeholder="Mot de passe"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  autoFocus
-                />
-
-                {passwordError && <div className="form-error" style={{ marginTop: '10px' }}>{passwordError}</div>}
-
-                <div className="modal-actions" style={{ marginTop: '14px' }}>
-                  <button type="button" className="btn-modal-cancel" onClick={handleCancelPassword}>
-                    Annuler
-                  </button>
-                  <button type="submit" className="btn-modal-confirm">
-                    Valider
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+// --- DONNÉES INITIALES ---
+const INITIAL_FAQS = [
+  {
+    id: 1,
+    question: "Comment réinitialiser mon mot de passe ?",
+    answer: "Rendez-vous sur la page de connexion, cliquez sur 'Mot de passe oublié' et suivez les instructions envoyées par e-mail.",
+    category: "Compte & Connexion"
+  },
+  {
+    id: 2,
+    question: "Quels sont les délais de livraison pour la France ?",
+    answer: "Les délais standard sont de 48h à 72h ouvrées via Colissimo.",
+    category: "Livraison"
+  },
+  {
+    id: 3,
+    question: "Comment télécharger ma facture ?",
+    answer: "Connectez-vous à votre espace client, rubrique 'Mes Commandes', puis cliquez sur 'Télécharger la facture'.",
+    category: "Facturation"
   }
+];
 
-  /* ================= PAGE 2 : INTERFACE PRINCIPALE (3 COLONNES) ================= */
+const INITIAL_TICKETS = [
+  {
+    id: 'TK-101',
+    client: 'Sophie Martin',
+    subject: 'Erreur de paiement sur la commande #4590',
+    status: 'OPEN',
+    priority: 'HIGH',
+    sentiment: 'angry',
+    waitTime: '18 min',
+    messages: [
+      { id: 1, sender: 'client', text: 'Bonjour, ma carte a été débitée deux fois pour la commande #4590 ! Merci de régler cela rapidement.' }
+    ]
+  },
+  {
+    id: 'TK-102',
+    client: 'Thomas Dubois',
+    subject: 'Changement d adresse de livraison',
+    status: 'OPEN',
+    priority: 'MEDIUM',
+    sentiment: 'neutral',
+    waitTime: '5 min',
+    messages: [
+      { id: 1, sender: 'client', text: 'Bonjour, je souhaite modifier mon adresse avant l expédition.' }
+    ]
+  },
+  {
+    id: 'TK-103',
+    client: 'Claire Bernard',
+    subject: 'Question sur l offre Zen Premium',
+    status: 'RESOLVED',
+    priority: 'LOW',
+    sentiment: 'happy',
+    waitTime: '2 min',
+    messages: [
+      { id: 1, sender: 'client', text: 'Merci beaucoup pour vos explications claires !' },
+      { id: 2, sender: 'agent', text: 'Ravi d avoir pu vous aider. Excellente journée !' }
+    ]
+  }
+];
+
+export default function App() {
+  const [currentRole, setCurrentRole] = useState('landing');
+  const [tickets, setTickets] = useState(INITIAL_TICKETS);
+  const [faqs, setFaqs] = useState(INITIAL_FAQS);
+  const [activeTicketId, setActiveTicketId] = useState('TK-101');
+  const [chatInput, setChatInput] = useState('');
+  const [copilotSuggestion, setCopilotSuggestion] = useState('');
+  const [isCopilotLoading, setIsCopilotLoading] = useState(false);
+  const [isAddTicketModalOpen, setIsAddTicketModalOpen] = useState(false);
+
+  const activeTicket = tickets.find(t => t.id === activeTicketId) || tickets[0];
+
+  const handleSendMessage = (sender = 'agent') => {
+    if (!chatInput.trim() || !activeTicket) return;
+    const newMessage = { id: Date.now(), sender, text: chatInput };
+    
+    setTickets(tickets.map(t => {
+      if (t.id === activeTicket.id) {
+        return { ...t, messages: [...t.messages, newMessage] };
+      }
+      return t;
+    }));
+    setChatInput('');
+  };
+
+  const handleEditMessage = (ticketId, messageId, newText) => {
+    setTickets(tickets.map(t => {
+      if (t.id === ticketId) {
+        return {
+          ...t,
+          messages: t.messages.map(m => m.id === messageId ? { ...m, text: newText } : m)
+        };
+      }
+      return t;
+    }));
+  };
+
+  const handleDeleteMessage = (ticketId, messageId) => {
+    setTickets(tickets.map(t => {
+      if (t.id === ticketId) {
+        return {
+          ...t,
+          messages: t.messages.filter(m => m.id !== messageId)
+        };
+      }
+      return t;
+    }));
+  };
+
+  const handleDeleteTicket = (ticketId) => {
+    if (window.confirm("Voulez-vous vraiment supprimer ce ticket ?")) {
+      const remainingTickets = tickets.filter(t => t.id !== ticketId);
+      setTickets(remainingTickets);
+      if (remainingTickets.length > 0) {
+        setActiveTicketId(remainingTickets[0].id);
+      }
+    }
+  };
+
+  const handleGenerateCopilot = () => {
+    setIsCopilotLoading(true);
+    setCopilotSuggestion('');
+    setTimeout(() => {
+      const matchedFaq = faqs.find(f => 
+        activeTicket?.subject.toLowerCase().includes(f.category.toLowerCase()) || 
+        f.question.toLowerCase().includes('facture')
+      );
+      
+      const suggestion = matchedFaq 
+        ? `Bonjour ${activeTicket?.client || ''},\n\nConformément à notre procédure : ${matchedFaq.answer}\n\nN'hésitez pas si vous avez d'autres questions !`
+        : `Bonjour ${activeTicket?.client || ''},\n\nJ'ai bien pris en compte votre demande concernant "${activeTicket?.subject}". Je vérifie votre dossier et je reviens vers vous immédiatement.`;
+
+      setCopilotSuggestion(suggestion);
+      setIsCopilotLoading(false);
+    }, 1000);
+  };
+
+  const handleCreateTicket = (newTicket) => {
+    setTickets([newTicket, ...tickets]);
+    setActiveTicketId(newTicket.id);
+    setIsAddTicketModalOpen(false);
+  };
+
   return (
     <div className="app-viewport">
-      {/* NAVBAR SUPÉRIEURE */}
-      <header className="main-navbar">
-        <div className="navbar-brand">
-          <Bot size={20} className="brand-icon" />
-          <span>Zen Copilot IA</span>
+      {currentRole === 'landing' ? (
+        <LandingScreen onSelectRole={setCurrentRole} />
+      ) : (
+        <>
+          <Navbar 
+            activeRole={currentRole} 
+            onHomeClick={() => setCurrentRole('landing')} 
+          />
+
+          {currentRole === 'client' && (
+            <ClientView 
+              tickets={tickets}
+              activeTicket={activeTicket}
+              setActiveTicketId={setActiveTicketId}
+              chatInput={chatInput}
+              setChatInput={setChatInput}
+              onSendMessage={() => handleSendMessage('client')}
+              onEditMessage={handleEditMessage}
+              onDeleteMessage={handleDeleteMessage}
+              onDeleteTicket={handleDeleteTicket}
+              onOpenAddTicket={() => setIsAddTicketModalOpen(true)}
+            />
+          )}
+
+          {currentRole === 'agent' && (
+            <div className="three-columns-layout">
+              <aside className="column-sidebar">
+                <div className="sidebar-header-row">
+                  <div className="section-title">
+                    <MessageCircle size={14} /> Tickets Actifs ({tickets.length})
+                  </div>
+                  <button className="btn-add-ticket" onClick={() => setIsAddTicketModalOpen(true)}>
+                    <Plus size={13} /> Nouveau
+                  </button>
+                </div>
+
+                <div className="ticket-list">
+                  {tickets.map((t) => (
+                    <div 
+                      key={t.id} 
+                      className={`ticket-card ${t.id === activeTicketId ? 'active' : ''}`}
+                      onClick={() => setActiveTicketId(t.id)}
+                    >
+                      <div className="ticket-card-header">
+                        <div className="client-header-group">
+                          <span className="client-name">{t.client}</span>
+                        </div>
+                        <span className="ticket-id">{t.id}</span>
+                      </div>
+                      <div className="ticket-subject">{t.subject}</div>
+
+                      <div className="ticket-tags">
+                        <span className={`badge-pill tag-${t.status.toLowerCase()}`}>{t.status}</span>
+                        <span className={`badge-pill badge-priority-${t.priority.toLowerCase()}`}>{t.priority}</span>
+                        <span className={`badge-pill cell-sentiment-${t.sentiment}`}>{t.sentiment}</span>
+                        <span className="badge-pill cell-wait">{t.waitTime}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="sidebar-section" style={{ marginTop: 'auto' }}>
+                  <div className="section-title">
+                    <BookOpen size={14} /> Aperçu RAG FAQ ({faqs.length})
+                  </div>
+                  <div className="faq-list">
+                    {faqs.slice(0, 2).map((f) => (
+                      <div key={f.id} className="faq-card">
+                        <h5>{f.question}</h5>
+                        <p>{f.answer.slice(0, 60)}...</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </aside>
+
+              <main className="column-chat">
+                <div className="chat-header">
+                  <div>
+                    <h3>{activeTicket?.subject}</h3>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Client : <strong>{activeTicket?.client}</strong> ({activeTicket?.id})
+                    </span>
+                  </div>
+                  <div className="chat-header-actions">
+                    <span className={`badge-pill tag-${activeTicket?.status.toLowerCase()}`}>
+                      {activeTicket?.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="messages-list">
+                  {activeTicket?.messages.map((msg) => (
+                    <div key={msg.id || Math.random()} className={`message-bubble ${msg.sender}`}>
+                      {msg.text}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="chat-input-box">
+                  <textarea 
+                    rows="3" 
+                    placeholder="Saisissez votre réponse au client..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                  />
+                  <div className="chat-input-footer">
+                    <button className="btn-send" onClick={() => handleSendMessage('agent')}>
+                      Envoyer <Send size={14} />
+                    </button>
+                  </div>
+                </div>
+              </main>
+
+              <aside className="column-copilot">
+                <div className="copilot-header">
+                  <Sparkles size={18} /> Copilot RAG IA
+                </div>
+
+                <button 
+                  className={`btn-copilot ${isCopilotLoading ? 'loading' : ''}`} 
+                  onClick={handleGenerateCopilot}
+                  disabled={isCopilotLoading}
+                >
+                  <Sparkles size={16} /> 
+                  {isCopilotLoading ? 'Analyse RAG en cours...' : 'Générer la Réponse IA'}
+                </button>
+
+                {copilotSuggestion && (
+                  <div className="suggestion-box">
+                    <p>{copilotSuggestion}</p>
+                    <button 
+                      className="btn-insert"
+                      onClick={() => setChatInput(copilotSuggestion)}
+                    >
+                      <CornerDownLeft size={14} /> Insérer dans le Chat
+                    </button>
+                  </div>
+                )}
+              </aside>
+            </div>
+          )}
+
+          {currentRole === 'supervisor' && (
+            <SupervisorView 
+              faqs={faqs} 
+              setFaqs={setFaqs} 
+              tickets={tickets} 
+            />
+          )}
+        </>
+      )}
+
+      {isAddTicketModalOpen && (
+        <ModalAddTicket 
+          onClose={() => setIsAddTicketModalOpen(false)} 
+          onSubmit={handleCreateTicket} 
+        />
+      )}
+    </div>
+  );
+}
+
+// ================= LANDING SCREEN AVEC POPUP MOT DE PASSE =================
+function LandingScreen({ onSelectRole }) {
+  const [selectedRoleModal, setSelectedRoleModal] = useState(null);
+
+  return (
+    <div className="landing-screen">
+      <div className="landing-header">
+        <div className="brand-badge"><Sparkles size={24} /></div>
+        <h1>ZenSupport Copilot</h1>
+        <p>Sélectionnez un rôle pour vous connecter</p>
+      </div>
+
+      <div className="role-grid">
+        <div className="role-box" onClick={() => setSelectedRoleModal('client')}>
+          <div className="role-box-icon"><User size={22} /></div>
+          <h3>Espace Client</h3>
+          <p>Consulter, créer, corriger ou supprimer vos tickets et messages.</p>
+          <button className="role-box-btn">Accéder comme Client (Code: 123)</button>
         </div>
 
-        <div className="navbar-right">
-          <div className="role-badge">
-            <span className="active-dot"></span>
-            <span>Rôle : <strong>{currentRole === 'CLIENT' ? 'Client' : currentRole === 'AGENT' ? 'Agent Support' : 'Superviseur'}</strong></span>
+        <div className="role-box" onClick={() => setSelectedRoleModal('agent')}>
+          <div className="role-box-icon"><Headphones size={22} /></div>
+          <h3>Espace Agent</h3>
+          <p>Gestion des tickets, messagerie et assistance Copilot IA.</p>
+          <button className="role-box-btn">Accéder comme Agent (Code: 456)</button>
+        </div>
+
+        <div className="role-box" onClick={() => setSelectedRoleModal('supervisor')}>
+          <div className="role-box-icon"><ShieldCheck size={22} /></div>
+          <h3>Espace Superviseur</h3>
+          <p>Gestion CRUD de la base FAQ RAG et tableau de bord.</p>
+          <button className="role-box-btn">Accéder comme Superviseur (Code: 789)</button>
+        </div>
+      </div>
+
+      {/* POPUP Saisie de mot de passe */}
+      {selectedRoleModal && (
+        <ModalPassword 
+          role={selectedRoleModal}
+          onClose={() => setSelectedRoleModal(null)}
+          onSuccess={(role) => {
+            setSelectedRoleModal(null);
+            onSelectRole(role);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ================= MODALE POPUP MOT DE PASSE =================
+function ModalPassword({ role, onClose, onSuccess }) {
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const getRoleLabel = () => {
+    if (role === 'client') return 'Client';
+    if (role === 'agent') return 'Agent';
+    return 'Superviseur';
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (password === ROLE_PASSWORDS[role]) {
+      onSuccess(role);
+    } else {
+      setErrorMsg('Mot de passe incorrect ! Veuillez réinstaller le code valide.');
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card">
+        <button className="modal-close-btn" onClick={onClose}>×</button>
+        <div className="modal-icon"><Lock size={20} /></div>
+        <h3>Connexion Espace {getRoleLabel()}</h3>
+        <p>Veuillez entrer le mot de passe requis pour accéder à cet espace (Code: <strong>{ROLE_PASSWORDS[role]}</strong>).</p>
+
+        <form onSubmit={handleSubmit} className="ticket-form">
+          <div className="form-group">
+            <label>Mot de Passe</label>
+            <input 
+              type="password" 
+              className="form-input" 
+              placeholder="Ex: 123"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setErrorMsg(''); }}
+              autoFocus
+              required
+            />
+            {errorMsg && (
+              <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '6px', display: 'block', fontWeight: '500' }}>
+                {errorMsg}
+              </span>
+            )}
           </div>
 
+          <div className="modal-actions">
+            <button type="button" className="btn-modal-cancel" onClick={onClose}>
+              Annuler
+            </button>
+            <button type="submit" className="btn-modal-confirm">
+              Accéder
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ================= NAVBAR =================
+function Navbar({ activeRole, onHomeClick }) {
+  const getRoleLabel = () => {
+    if (activeRole === 'client') return 'Client';
+    if (activeRole === 'agent') return 'Agent Support';
+    return 'Superviseur';
+  };
+
+  return (
+    <nav className="main-navbar">
+      <div className="navbar-brand">
+        <Sparkles size={18} className="brand-icon" /> ZenSupport IA
+      </div>
+      <div className="navbar-right">
+        <div className="role-badge">
+          <span className="active-dot" />
+          Rôle : <strong>{getRoleLabel()}</strong>
+        </div>
+        <button className="btn-home" onClick={onHomeClick} title="Revenir au menu principal">
+          <Home size={16} />
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+// ================= ESPACE CLIENT =================
+function ClientView({ 
+  tickets, activeTicket, setActiveTicketId, 
+  chatInput, setChatInput, onSendMessage, 
+  onEditMessage, onDeleteMessage, onDeleteTicket,
+  onOpenAddTicket
+}) {
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editText, setEditText] = useState('');
+
+  const handleStartEdit = (msg) => {
+    setEditingMsgId(msg.id);
+    setEditText(msg.text);
+  };
+
+  const handleSaveEdit = (msgId) => {
+    if (editText.trim()) {
+      onEditMessage(activeTicket.id, msgId, editText);
+    }
+    setEditingMsgId(null);
+  };
+
+  return (
+    <div className="three-columns-layout" style={{ gridTemplateColumns: '300px 1fr' }}>
+      {/* SIDEBAR CLIENT SANS LE BOUTON REVENIR */}
+      <aside className="column-sidebar">
+        <div className="sidebar-header-row">
+          <button className="btn-add-ticket" onClick={onOpenAddTicket} style={{ width: '100%', justifyContent: 'center' }}>
+            <Plus size={13} /> Nouveau Ticket
+          </button>
+        </div>
+
+        <div className="section-title" style={{ marginTop: '14px' }}>
+          <MessageSquare size={14} /> Mes Demandes ({tickets.length})
+        </div>
+
+        <div className="ticket-list">
+          {tickets.map((t) => (
+            <div 
+              key={t.id} 
+              className={`ticket-card ${t.id === activeTicket?.id ? 'active' : ''}`}
+              onClick={() => setActiveTicketId(t.id)}
+            >
+              <div className="ticket-card-header">
+                <span className="client-name">{t.client}</span>
+                <span className="ticket-id">{t.id}</span>
+              </div>
+              <div className="ticket-subject">{t.subject}</div>
+
+              <div className="ticket-tags">
+                <span className={`badge-pill tag-${t.status.toLowerCase()}`}>{t.status}</span>
+                <span className={`badge-pill badge-priority-${t.priority.toLowerCase()}`}>{t.priority}</span>
+                <span className={`badge-pill cell-sentiment-${t.sentiment}`}>{t.sentiment}</span>
+                <span className="badge-pill cell-wait">{t.waitTime}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      {/* CHAT CLIENT */}
+      <main className="column-chat">
+        <div className="chat-header">
+          <div>
+            <h3>{activeTicket?.subject || 'Sélectionnez une demande'}</h3>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Ticket N° : <strong>{activeTicket?.id}</strong>
+            </span>
+          </div>
+          
+          {/* NOUVEAU STYLE DU BOUTON SUPPRIMER LE TICKET */}
+          {activeTicket && (
+            <button 
+              onClick={() => onDeleteTicket(activeTicket.id)}
+              style={{
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+                border: '1px solid #fca5a5',
+                borderRadius: '8px',
+                padding: '7px 14px',
+                fontWeight: '600',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fecaca'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
+            >
+              <Trash2 size={14} /> Supprimer le ticket
+            </button>
+          )}
+        </div>
+
+        <div className="messages-list">
+          {!activeTicket || activeTicket.messages.length === 0 ? (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '20px' }}>
+              Aucun message dans ce ticket.
+            </p>
+          ) : (
+            activeTicket.messages.map((msg) => (
+              <div key={msg.id || Math.random()} className={`message-bubble ${msg.sender}`}>
+                {editingMsgId === msg.id ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                    <textarea 
+                      value={editText} 
+                      onChange={(e) => setEditText(e.target.value)}
+                      rows="2"
+                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.8rem' }}
+                    />
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                      <button onClick={() => setEditingMsgId(null)} className="btn-modal-cancel" style={{ padding: '2px 6px' }}>
+                        <X size={12} />
+                      </button>
+                      <button onClick={() => handleSaveEdit(msg.id)} className="btn-modal-confirm" style={{ padding: '2px 8px' }}>
+                        <Check size={12} /> Valider
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <span>{msg.text}</span>
+                    {msg.sender === 'client' && (
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '4px', justifyContent: 'flex-end' }}>
+                        <button 
+                          onClick={() => handleStartEdit(msg)} 
+                          title="Corriger"
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button 
+                          onClick={() => onDeleteMessage(activeTicket.id, msg.id)} 
+                          title="Supprimer"
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="chat-input-box">
+          <textarea 
+            rows="3" 
+            placeholder="Posez votre question ou ajoutez une précision..."
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+          />
+          <div className="chat-input-footer">
+            <button className="btn-send" onClick={onSendMessage}>
+              Envoyer <Send size={14} />
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ================= ESPACE SUPERVISEUR & CRUD FAQ =================
+function SupervisorView({ faqs, setFaqs, tickets }) {
+  const [activeTab, setActiveTab] = useState('analytics');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingFaq, setEditingFaq] = useState(null);
+  const [formData, setFormData] = useState({ question: '', answer: '', category: 'Général' });
+
+  const categoryStats = [
+    { label: 'Technique', count: 12, percentage: 50, color: 'var(--zen-green)' },
+    { label: 'Facturation', count: 6, percentage: 25, color: '#3b82f6' },
+    { label: 'Compte & Accès', count: 4, percentage: 17, color: '#f59e0b' },
+    { label: 'Livraison', count: 2, percentage: 8, color: '#ef4444' },
+  ];
+
+  const handleOpenAdd = () => {
+    setEditingFaq(null);
+    setFormData({ question: '', answer: '', category: 'Général' });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (faq) => {
+    setEditingFaq(faq);
+    setFormData({ question: faq.question, answer: faq.answer, category: faq.category || 'Général' });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm('Voulez-vous supprimer cette question de la FAQ RAG ?')) {
+      setFaqs(faqs.filter(f => f.id !== id));
+    }
+  };
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    if (!formData.question.trim() || !formData.answer.trim()) return;
+
+    if (editingFaq) {
+      setFaqs(faqs.map(f => f.id === editingFaq.id ? { ...f, ...formData } : f));
+    } else {
+      setFaqs([{ id: Date.now(), ...formData }, ...faqs]);
+    }
+    setIsModalOpen(false);
+  };
+
+  const filteredFaqs = faqs.filter(f => 
+    f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    f.answer.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="supervisor-container">
+      <header className="supervisor-header">
+        <div className="supervisor-title">
+          <h2>Espace Superviseur</h2>
+          <span className="rag-sync-badge">
+            <Sparkles size={14} /> Index RAG Actif ({faqs.length} connaissances)
+          </span>
+        </div>
+
+        <div className="supervisor-tabs">
           <button 
-            className="btn-home" 
-            title="Changer de rôle"
-            onClick={() => setShowExitModal(true)}
+            className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
           >
-            <Home size={16} />
+            <BarChart3 size={16} /> Dashboard Analytique
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'faq' ? 'active' : ''}`}
+            onClick={() => setActiveTab('faq')}
+          >
+            <BookOpen size={16} /> Gestion FAQ (RAG)
           </button>
         </div>
       </header>
 
-      {/* MODAL RETOUR ÉCRAN D'ACCUEIL */}
-      {showExitModal && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <button className="modal-close-btn" onClick={() => setShowExitModal(false)}>
-              <X size={16} />
-            </button>
-            <div className="modal-icon"><Home size={22} /></div>
-            <h3>Changer de rôle ?</h3>
-            <p>Voulez-vous quitter cet espace et revenir au choix des rôles ?</p>
-            <div className="modal-actions">
-              <button className="btn-modal-cancel" onClick={() => setShowExitModal(false)}>
-                Annuler
-              </button>
-              <button 
-                className="btn-modal-confirm" 
-                onClick={() => {
-                  setShowExitModal(false);
-                  setCurrentRole(null);
-                }}
-              >
-                Confirmer
-              </button>
+      {activeTab === 'analytics' ? (
+        <div className="analytics-view" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="kpi-grid">
+            <div className="kpi-card">
+              <div className="kpi-icon icon-green"><MessageSquare size={20} /></div>
+              <div className="kpi-info">
+                <span className="kpi-label">Tickets Traités</span>
+                <span className="kpi-value">{tickets.length}</span>
+              </div>
             </div>
+
+            <div className="kpi-card">
+              <div className="kpi-icon icon-blue"><Clock size={20} /></div>
+              <div className="kpi-info">
+                <span className="kpi-label">Temps Moyen de Réponse</span>
+                <span className="kpi-value">11 min</span>
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div className="kpi-icon icon-purple"><Sparkles size={20} /></div>
+              <div className="kpi-info">
+                <span className="kpi-label">Utilisation Copilot</span>
+                <span className="kpi-value">88%</span>
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div className="kpi-icon icon-emerald"><CheckCircle2 size={20} /></div>
+              <div className="kpi-info">
+                <span className="kpi-label">Taux de Résolution</span>
+                <span className="kpi-value">95%</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="analytics-charts-grid">
+            <div className="chart-card">
+              <div className="card-header">
+                <h3>Répartition par Catégorie</h3>
+              </div>
+              <div className="category-list">
+                {categoryStats.map((cat, idx) => (
+                  <div key={idx} className="category-item">
+                    <div className="category-info">
+                      <span>{cat.label}</span>
+                      <strong>{cat.count} tickets ({cat.percentage}%)</strong>
+                    </div>
+                    <div className="progress-bar-bg">
+                      <div className="progress-bar-fill" style={{ width: `${cat.percentage}%`, backgroundColor: cat.color }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <div className="card-header">
+                <h3>Performance du RAG IA</h3>
+              </div>
+              <div className="ai-stats-box">
+                <div className="ai-stat-row">
+                  <span>Suggestions IA validées immédiatement</span>
+                  <strong className="text-green">68%</strong>
+                </div>
+                <div className="ai-stat-row">
+                  <span>Suggestions modifiées par l'agent</span>
+                  <strong className="text-orange">22%</strong>
+                </div>
+                <div className="ai-stat-row">
+                  <span>Suggestions ignorées</span>
+                  <strong className="text-red">10%</strong>
+                </div>
+                <div className="rag-status-banner">
+                  <RefreshCw size={14} /> Base de connaissances synchronisée en temps réel
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="faq-crud-view">
+          <div className="crud-toolbar">
+            <div className="search-box">
+              <Search size={16} />
+              <input 
+                type="text" 
+                placeholder="Rechercher une question FAQ..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <button className="btn-add-primary" onClick={handleOpenAdd}>
+              <Plus size={16} /> Ajouter une FAQ
+            </button>
+          </div>
+
+          <div className="faq-table-container">
+            <table className="faq-table">
+              <thead>
+                <tr>
+                  <th>Catégorie</th>
+                  <th>Question</th>
+                  <th>Réponse RAG</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredFaqs.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="empty-table">Aucune question FAQ trouvée.</td>
+                  </tr>
+                ) : (
+                  filteredFaqs.map((faq) => (
+                    <tr key={faq.id}>
+                      <td>
+                        <span className="faq-cat-badge">{faq.category || 'Général'}</span>
+                      </td>
+                      <td className="col-question"><strong>{faq.question}</strong></td>
+                      <td className="col-answer">{faq.answer}</td>
+                      <td className="col-actions">
+                        <button className="btn-action edit" onClick={() => handleOpenEdit(faq)} title="Éditer">
+                          <Edit2 size={15} />
+                        </button>
+                        <button className="btn-action delete" onClick={() => handleDelete(faq.id)} title="Supprimer">
+                          <Trash2 size={15} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* MODAL DE CRÉATION DE TICKET (CLIENT) */}
-      {showNewTicketModal && (
+      {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal-card modal-large">
-            <button className="modal-close-btn" onClick={() => setShowNewTicketModal(false)}>
-              <X size={16} />
-            </button>
-            <div className="modal-icon"><Plus size={20} /></div>
-            <h3>Nouveau Ticket de Support</h3>
-            <p>Décrivez votre problème, notre équipe vous répondra dans les plus brefs délais.</p>
+            <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>×</button>
+            <div className="modal-icon"><BookOpen size={20} /></div>
+            <h3>{editingFaq ? 'Modifier la FAQ RAG' : 'Ajouter une FAQ RAG'}</h3>
+            <p>Ce contenu enrichit directement les réponses générées par le Copilot IA.</p>
 
-            <form onSubmit={handleCreateTicket} className="ticket-form">
-              {ticketError && <div className="form-error">{ticketError}</div>}
+            <form onSubmit={handleSave} className="ticket-form">
+              <div className="form-group">
+                <label>Catégorie</label>
+                <select 
+                  className="form-select"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                >
+                  <option value="Général">Général</option>
+                  <option value="Technique">Technique</option>
+                  <option value="Facturation">Facturation</option>
+                  <option value="Livraison">Livraison</option>
+                </select>
+              </div>
 
               <div className="form-group">
-                <label>Sujet de la demande</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Ex: Problème de connexion, Erreur de facturation..."
-                  value={newSubject}
-                  onChange={(e) => setNewSubject(e.target.value)}
+                <label>Question du Client</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Ex: Quel est le délai de remboursement ?"
+                  value={formData.question}
+                  onChange={(e) => setFormData({ ...formData, question: e.target.value })}
                   required
                 />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Canal</label>
-                  <select className="form-select" value={newChannel} onChange={(e) => setNewChannel(e.target.value)}>
-                    <option value="WEB">Web</option>
-                    <option value="EMAIL">Email</option>
-                    <option value="CHAT">Chat</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Priorité</label>
-                  <select className="form-select" value={newPriority} onChange={(e) => setNewPriority(e.target.value)}>
-                    <option value="LOW">Basse</option>
-                    <option value="MEDIUM">Moyenne</option>
-                    <option value="HIGH">Haute</option>
-                  </select>
-                </div>
-              </div>
-
               <div className="form-group">
-                <label>Description détaillée</label>
-                <textarea
-                  className="form-textarea"
-                  rows={4}
-                  placeholder="Expliquez en détail la difficulté rencontrée..."
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
+                <label>Réponse Officielle (RAG Contexte)</label>
+                <textarea 
+                  className="form-textarea" 
+                  rows="4"
+                  placeholder="Rédigez la réponse de référence..."
+                  value={formData.answer}
+                  onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
                   required
                 />
               </div>
 
-              <div className="modal-actions" style={{ marginTop: '16px' }}>
-                <button type="button" className="btn-modal-cancel" onClick={() => setShowNewTicketModal(false)}>
+              <div className="modal-actions">
+                <button type="button" className="btn-modal-cancel" onClick={() => setIsModalOpen(false)}>
                   Annuler
                 </button>
                 <button type="submit" className="btn-modal-confirm">
-                  Créer le ticket
+                  {editingFaq ? 'Mettre à jour' : 'Enregistrer'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {/* LAYOUT 3 COLONNES */}
-      <div className="three-columns-layout">
-        {/* COLONNE 1 : TICKETS ET FAQ */}
-        <aside className="column-sidebar">
-          <div className="sidebar-section">
-            <div className="section-title">
-              <MessageSquare size={14} />
-              <span>{currentRole === 'CLIENT' ? 'MES TICKETS' : 'INBOX TICKETS'}</span>
-              {currentRole === 'CLIENT' && (
-                <button className="btn-add-faq" onClick={() => setShowNewTicketModal(true)}>
-                  <Plus size={10} /> Nouveau ticket
-                </button>
-              )}
-            </div>
-            <div className="ticket-list">
-              {tickets.map((t) => (
-                <div
-                  key={t.id}
-                  className={`ticket-card ${selectedTicket?.id === t.id ? 'active' : ''}`}
-                  onClick={() => setSelectedTicket(t)}
-                >
-                  <div className="ticket-card-header">
-                    <span className="client-name">{t.client?.name || 'Client'}</span>
-                    <span className="wait-time"><Clock size={11} /> {getWaitingTime(t.createdAt)}</span>
-                  </div>
-                  <h4 className="ticket-subject">{t.subject}</h4>
-                  
-                  {currentRole !== 'CLIENT' && (
-                    <div className="ticket-tags">
-                      <span className="tag">{t.channel}</span>
-                      {t.priority && <span className="tag">P: {t.priority}</span>}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="sidebar-section">
-            <div className="section-title">
-              <Bot size={14} />
-              <span>BASE FAQ</span>
-              {currentRole === 'SUPERVISOR' && <button className="btn-add-faq"><Plus size={10} /> Ajouter</button>}
-            </div>
-            <div className="faq-list">
-              {faqs.map((faq) => (
-                <div key={faq.id} className="faq-card">
-                  <h5>{faq.question}</h5>
-                  <p>{faq.answer}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        {/* COLONNE 2 : CHAT PRINCIPAL */}
-        <main className="column-chat">
-          {selectedTicket ? (
-            <>
-              <header className="chat-header">
-                <div>
-                  <h3>{selectedTicket.subject}</h3>
-                  <span className="client-info"><User size={12} /> {selectedTicket.client?.name}</span>
-                </div>
-                <span className="badge-status">{selectedTicket.status}</span>
-              </header>
-
-              <div className="messages-list">
-                {selectedTicket.messages?.map((msg) => (
-                  <div key={msg.id} className={`message-bubble ${msg.senderRole === 'CLIENT' ? 'client' : 'agent'}`}>
-                    <span className="sender-label">{msg.senderRole === 'CLIENT' ? 'Client' : 'Agent Support'}</span>
-                    <p>{msg.content}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="chat-input-box">
-                <textarea
-                  rows={3}
-                  placeholder={currentRole === 'CLIENT' ? "Écrivez votre message..." : "Rédigez votre réponse au client..."}
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                />
-                <div className="input-actions">
-                  <button className="btn-send" onClick={handleSendMessage}>
-                    <Send size={14} /> {currentRole === 'CLIENT' ? 'Envoyer' : 'Envoyer & Résoudre'}
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="empty-chat">Sélectionnez un ticket pour ouvrir la discussion</div>
-          )}
-        </main>
-
-        {/* COLONNE 3 : COPILOT IA */}
-        <aside className="column-copilot">
-          <div className="copilot-header">
-            <Bot size={16} />
-            <span>Zen Copilot IA</span>
-          </div>
-
-          {currentRole === 'CLIENT' ? (
-            <div className="copilot-client-info">
-              <p>💡 <strong>Assistance automatique</strong></p>
-              <p>Vos messages sont analysés en temps réel pour accélérer la prise en charge par notre équipe support.</p>
-            </div>
-          ) : (
-            <>
-              <button className="btn-copilot" onClick={handleGenerateSuggestion} disabled={isGenerating}>
-                {isGenerating ? 'Analyse en cours...' : 'Générer une suggestion IA'}
-              </button>
-              {copilotSuggestion && (
-                <div className="suggestion-box">
-                  <p>{copilotSuggestion}</p>
-                  <button className="btn-insert" onClick={() => setReplyText(copilotSuggestion)}>
-                    <CheckCircle size={14} /> Copier dans le message
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </aside>
-      </div>
     </div>
   );
 }
 
-export default App;
+// ================= MODALE CREATION DE TICKET =================
+function ModalAddTicket({ onClose, onSubmit }) {
+  const [formData, setFormData] = useState({
+    client: '',
+    subject: '',
+    priority: 'MEDIUM',
+    sentiment: 'neutral',
+    message: ''
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.client || !formData.subject) return;
+
+    const newTicket = {
+      id: `TK-${Math.floor(100 + Math.random() * 900)}`,
+      client: formData.client,
+      subject: formData.subject,
+      status: 'OPEN',
+      priority: formData.priority,
+      sentiment: formData.sentiment,
+      waitTime: 'À l instant',
+      messages: formData.message ? [{ id: Date.now(), sender: 'client', text: formData.message }] : []
+    };
+
+    onSubmit(newTicket);
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card modal-large">
+        <button className="modal-close-btn" onClick={onClose}>×</button>
+        <div className="modal-icon"><Plus size={20} /></div>
+        <h3>Nouveau Ticket Client</h3>
+        <p>Soumettre une nouvelle demande au support technique.</p>
+
+        <form onSubmit={handleSubmit} className="ticket-form">
+          <div className="form-row">
+            <div className="form-group">
+              <label>Nom du Client</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Ex: Jean Dupont"
+                value={formData.client}
+                onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Priorité</label>
+              <select 
+                className="form-select"
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+              >
+                <option value="LOW">Basse</option>
+                <option value="MEDIUM">Moyenne</option>
+                <option value="HIGH">Haute</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Sujet du Ticket</label>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Ex: Problème d accès à mon compte"
+              value={formData.subject}
+              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Message Initial</label>
+            <textarea 
+              className="form-textarea" 
+              rows="3"
+              placeholder="Décrivez votre problème..."
+              value={formData.message}
+              onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+            />
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="btn-modal-cancel" onClick={onClose}>
+              Annuler
+            </button>
+            <button type="submit" className="btn-modal-confirm">
+              Soumettre le Ticket
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

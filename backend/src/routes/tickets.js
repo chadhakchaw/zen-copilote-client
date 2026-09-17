@@ -2,100 +2,86 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
 
-// Récupérer tous les tickets
+const parseId = (id) => (isNaN(Number(id)) ? String(id) : Number(id));
+
+// GET /api/tickets
 router.get('/', async (req, res) => {
   try {
     const tickets = await prisma.ticket.findMany({
-      include: {
-        client: true,
-        messages: true,
-      },
+      include: { client: true },
       orderBy: { createdAt: 'desc' },
     });
     res.json(tickets);
   } catch (error) {
-    console.error('Erreur récupération tickets:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Créer un nouveau ticket (Client)
-router.post('/', async (req, res) => {
-  const { subject, channel, priority, description } = req.body;
-
-  if (!subject || !description) {
-    return res.status(400).json({ message: 'Le sujet et la description sont requis.' });
-  }
+// GET /api/tickets/:id/messages
+router.get('/:id/messages', async (req, res) => {
+  const ticketId = parseId(req.params.id);
 
   try {
-    // Récupérer un client existant ou en créer un par défaut
-    let client = await prisma.client.findFirst();
-    if (!client) {
-      client = await prisma.client.create({
-        data: {
-          name: 'Client Utilisateur',
-          email: 'client@example.com',
-        },
-      });
-    }
-
-    const newTicket = await prisma.ticket.create({
-      data: {
-        subject,
-        channel: channel || 'WEB',
-        priority: priority || 'MEDIUM',
-        status: 'OPEN',
-        clientId: client.id,
-        messages: {
-          create: {
-            content: description,
-            senderRole: 'CLIENT',
-          },
-        },
-      },
-      include: {
-        client: true,
-        messages: true,
-      },
+    const messages = await prisma.message.findMany({
+      where: { ticketId },
+      orderBy: { createdAt: 'asc' },
     });
-
-    res.status(201).json(newTicket);
+    res.json(messages);
   } catch (error) {
-    console.error('Erreur création ticket:', error);
-    res.status(500).json({ message: 'Erreur serveur lors de la création du ticket.' });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Ajouter un message à un ticket
+// POST /api/tickets/:id/messages
 router.post('/:id/messages', async (req, res) => {
-  const { id } = req.params;
-  const { content, senderRole, status } = req.body;
+  const ticketId = parseId(req.params.id);
+  const { content, senderRole } = req.body;
 
   try {
     const message = await prisma.message.create({
       data: {
-        ticketId: parseInt(id),
         content,
-        senderRole,
+        senderRole: senderRole || 'CLIENT',
+        ticketId,
       },
     });
+    res.json(message);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-    if (status) {
-      await prisma.ticket.update({
-        where: { id: parseInt(id) },
-        data: { status },
+// POST /api/tickets (Création de ticket)
+router.post('/', async (req, res) => {
+  const { subject, category, priority, clientName, clientEmail, initialMessage } = req.body;
+
+  try {
+    let client = await prisma.client.findFirst({
+      where: { email: clientEmail },
+    });
+
+    if (!client) {
+      client = await prisma.client.create({
+        data: { name: clientName, email: clientEmail },
       });
     }
 
-    const updatedTicket = await prisma.ticket.findUnique({
-      where: { id: parseInt(id) },
-      include: { client: true, messages: true },
+    const ticket = await prisma.ticket.create({
+      data: {
+        subject,
+        category: category || 'GENERAL',
+        priority: priority || 'MEDIUM',
+        clientId: client.id,
+        messages: initialMessage ? {
+          create: [{ content: initialMessage, senderRole: 'CLIENT' }]
+        } : undefined
+      },
+      include: { client: true, messages: true }
     });
 
-    res.json(updatedTicket);
+    res.json(ticket);
   } catch (error) {
-    console.error('Erreur ajout message:', error);
-    res.status(500).json({ error: 'Erreur lors de l\'envoi du message' });
+    res.status(500).json({ error: error.message });
   }
 });
 
